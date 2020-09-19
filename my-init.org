@@ -1,0 +1,260 @@
+* Package setup and bootstrap use-package
+#+BEGIN_SRC emacs-lisp
+(require 'package)
+(setq package-archives
+      '(("gnu" . "http://elpa.gnu.org/packages/")
+        ("melpa" . "http://melpa.org/packages/")
+	("melpa-stb" . "https://stable.melpa.org/packages/")))
+
+(package-initialize)
+
+(unless (require 'use-package nil t)
+  (if (not (yes-or-no-p (concat "Refresh packages, install use-package and"
+                                " other packages used by init file? ")))
+      (error "you need to install use-package first")
+    (package-refresh-contents)
+    (package-install 'use-package)
+    (require 'use-package)))
+(setq use-package-always-ensure t)
+#+END_SRC
+
+
+* UI/UX
+** theme
+#+begin_src emacs-lisp
+(use-package doom-themes
+  :ensure t
+  :config
+  ;; Global settings (defaults)
+  (setq doom-themes-enable-bold t    ; if nil, bold is universally disabled
+        doom-themes-enable-italic t) ; if nil, italics is universally disabled
+  (load-theme 'doom-nord-light t)
+
+  ;; Enable flashing mode-line on errors
+  (doom-themes-visual-bell-config)
+
+  ;; Enable custom neotree theme (all-the-icons must be installed!)
+  ;;(doom-themes-neotree-config)
+  ;; or for treemacs users
+  ;;(setq doom-themes-treemacs-theme "doom-colors") ; use the colorful treemacs theme
+  ;;(doom-themes-treemacs-config)
+
+  ;; Corrects (and improves) org-mode's native fontification.
+  (doom-themes-org-config))
+#+end_src
+
+** which-key
+ #+BEGIN_SRC emacs-lisp
+   (use-package which-key
+     :ensure t
+     :config (which-key-mode
+	      (setq which-key-idle-delay .1)))
+ #+END_SRC
+
+** vterm
+ #+BEGIN_SRC emacs-lisp
+   (use-package vterm
+     :custom
+     (vterm-shell "/usr/bin/fish")
+     (vterm-kill-buffer-on-exit t))
+
+   ;; depends upon projectile and vterm
+   (use-package multi-vterm
+     :ensure t
+     :bind ("C-`" . multi-vterm-dedicated-toggle))
+
+   (add-hook 'vterm-mode-hook (lambda () (display-line-numbers-mode -1)))
+
+
+
+ #+END_SRC
+
+** Completion Engine
+ #+begin_src emacs-lisp
+ (use-package ivy :ensure t)
+ (use-package counsel :ensure t)
+ (use-package swiper :ensure t)
+
+ ;; taken from the thing
+ (ivy-mode 1)
+ (setq ivy-use-virtual-buffers t)
+ (setq enable-recursive-minibuffers t)
+ ;; enable this if you want `swiper' to use it
+ ;; (setq search-default-mode #'char-fold-to-regexp)
+ (global-set-key "\C-s" 'swiper)
+ (global-set-key (kbd "C-c C-r") 'ivy-resume)
+ (global-set-key (kbd "<f6>") 'ivy-resume)
+ (global-set-key (kbd "M-x") 'counsel-M-x)
+ (global-set-key (kbd "C-x C-f") 'counsel-find-file)
+ (global-set-key (kbd "<f1> f") 'counsel-describe-function)
+ (global-set-key (kbd "<f1> v") 'counsel-describe-variable)
+ (global-set-key (kbd "<f1> o") 'counsel-describe-symbol)
+ (global-set-key (kbd "<f1> l") 'counsel-find-library)
+ (global-set-key (kbd "<f2> i") 'counsel-info-lookup-symbol)
+ (global-set-key (kbd "<f2> u") 'counsel-unicode-char)
+ (global-set-key (kbd "C-c g") 'counsel-git)
+ (global-set-key (kbd "C-c j") 'counsel-git-grep)
+ (global-set-key (kbd "C-c k") 'counsel-ag)
+ (global-set-key (kbd "C-x l") 'counsel-locate)
+ (global-set-key (kbd "C-S-o") 'counsel-rhythmbox)
+ (define-key minibuffer-local-map (kbd "C-r") 'counsel-minibuffer-history)
+ #+end_src
+
+** small changes
+ #+BEGIN_SRC emacs-lisp
+ (tool-bar-mode -1)
+ (scroll-bar-mode -1)
+ (global-set-key (kbd "M-o") 'other-window)
+ (global-display-line-numbers-mode 0)
+ (auto-save-visited-mode t)
+ (setq org-src-window-setup 'current-window)
+ (setq sml/no-confirm-load-theme t)
+ (setq ring-bell-function 'ignore)
+ (cua-mode 1)
+ (winner-mode 1)
+ (setq initial-scratch-message "")
+ (use-package centered-window :ensure t)
+ (setq inhibit-startup-screen 1)
+ (global-auto-revert-mode t)               ; Auto-update buffer if file has changed on disk
+ (setq-default frame-title-format '("%b"))
+
+ (use-package undo-tree                    ; Enable undo-tree, sane undo/redo behavior
+ :ensure t
+ :init (global-undo-tree-mode))
+
+ (add-hook 'before-save-hook
+   'delete-trailing-whitespace)    ; Delete trailing whitespace on save
+
+ (add-hook 'prog-mode-hook                 ; Show line numbers in programming modes
+   (if (and (fboundp 'display-line-numbers-mode) (display-graphic-p))
+     #'display-line-numbers-mode
+     #'linum-mode))
+
+;;; Offload the custom-set-variables to a separate file
+;;; This keeps your init.el neater and you have the option
+;;; to gitignore your custom.el if you see fit.
+(setq custom-file "~/.config/emacs/custom.el")
+(unless (file-exists-p custom-file)
+  (write-region "" nil custom-file))
+;;; Load custom file. Don't hide errors. Hide success message
+(load custom-file nil t)
+
+;;; Put Emacs auto-save and backup files to /tmp/ or C:/Temp/
+(defconst emacs-tmp-dir (expand-file-name (format "emacs%d" (user-uid)) temporary-file-directory))
+(setq
+   backup-by-copying t                                        ; Avoid symlinks
+   delete-old-versions t
+   kept-new-versions 6
+   kept-old-versions 2
+   version-control t
+   auto-save-list-file-prefix emacs-tmp-dir
+   auto-save-file-name-transforms `((".*" ,emacs-tmp-dir t))  ; Change autosave dir to tmp
+   backup-directory-alist `((".*" . ,emacs-tmp-dir)))
+
+;;; Lockfiles unfortunately cause more pain than benefit
+(setq create-lockfiles nil)
+
+ #+END_SRC
+
+
+
+
+
+
+* Prog
+** lsp
+#+begin_src emacs-lisp
+;; set prefix for lsp-command-keymap (few alternatives - "C-l", "C-c l")
+(setq lsp-keymap-prefix "C-c l")
+
+(use-package lsp-mode
+    :ensure t
+    :hook (;; replace XXX-mode with concrete major-mode(e. g. python-mode)
+            (sh-mode . lsp)
+            ;; if you want which-key integration
+            (lsp-mode . lsp-enable-which-key-integration))
+    :commands lsp)
+
+;; optionally
+(use-package lsp-ui :commands lsp-ui-mode)
+;; if you are ivy user
+(use-package lsp-ivy :commands lsp-ivy-workspace-symbol)
+(use-package lsp-treemacs :commands lsp-treemacs-errors-list)
+
+;; optionally if you want to use debugger
+;; (use-package dap-mode)
+;; (use-package dap-LANGUAGE) to load the dap adapter for your language
+
+;; optional if you want which-key integration
+(use-package which-key
+    :ensure t
+    :config
+    (which-key-mode))
+#+end_src
+
+** Vue.js
+#+begin_src emacs-lisp
+(use-package vue-mode
+:ensure t)
+#+end_src
+
+** Rust
+#+begin_src demacs-lispd
+(use-package rustic
+:ensure t)
+#+end_src
+
+
+* Utils
+** Calendar
+#+begin_src emacs-lisp
+(use-package calfw)
+
+;; use unicode grid instead of beautiful ASCII art
+(setq cfw:fchar-junction ?╋
+      cfw:fchar-vertical-line ?┃
+      cfw:fchar-horizontal-line ?━
+      cfw:fchar-left-junction ?┣
+      cfw:fchar-right-junction ?┫
+      cfw:fchar-top-junction ?┯
+      cfw:fchar-top-left-corner ?┏
+      cfw:fchar-top-right-corner ?┓)
+#+end_src
+
+
+* Keybindings
+#+begin_src emacs-lisp
+(global-set-key (kbd "C-c m") 'menu-bar-mode)
+(global-set-key (kbd "C-c j") 'mm-notes)
+(global-set-key (kbd "C-c i") 'mm-openinit)
+(global-set-key (kbd "C-c r") 'matt-reload)
+#+end_src
+
+
+* Functions
+
+Personal functions should be listed here and bound in a section under Keybindings
+
+#+begin_src emacs-lisp
+;; general journaling file
+(defun mm-notes ()
+  (interactive)
+  (find-file "~/Documents/notes.org"))
+
+;; help me learn emacs plz
+;; TODO: move learning stuff to a hydra hotkey
+(defun learning ()
+  (interactive)
+  (find-file "~/.config/helpnotes/emacs.org")
+  (split-window-right)
+  (find-file "~/masteringemacs.pdf"))
+
+(defun mm-openinit ()
+(interactive)
+(find-file "~/.config/emacs/my-init.org"))
+
+(defun matt-reload ()
+    (interactive)
+    (load-file user-init-file))
+
+#+end_src
