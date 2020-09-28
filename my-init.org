@@ -154,6 +154,14 @@
 ;;; Lockfiles unfortunately cause more pain than benefit
 (setq create-lockfiles nil)
 
+
+
+;; scroll one line at a time (less "jumpy" than defaults)
+(setq mouse-wheel-scroll-amount '(1 ((shift) . 1))) ;; one line at a time
+(setq mouse-wheel-progressive-speed nil) ;; don't accelerate scrolling
+(setq mouse-wheel-follow-mouse 't) ;; scroll window under mouse
+(setq scroll-step 1) ;; keyboard scroll one line at a time
+
  #+END_SRC
 
 
@@ -192,20 +200,38 @@
     (which-key-mode))
 #+end_src
 
+
+** company complete
+#+begin_src emacs-lisp
+(use-package company)
+#+end_src
+
+
 ** Vue.js
 #+begin_src emacs-lisp
 (use-package vue-mode
 :ensure t)
 #+end_src
 
+
 ** Rust
-#+begin_src demacs-lispd
-(use-package rustic
-:ensure t)
+#+begin_src emacs-lisp
+(use-package rustic)
+#+end_src
+
+
+** Web
+#+begin_src emacs-lisp
+(use-package restclient)
 #+end_src
 
 
 * Utils
+** Snippets
+#+begin_src emacs-lisp
+(use-package yasnippet)
+#+end_src
+
 ** Calendar
 #+begin_src emacs-lisp
 (use-package calfw)
@@ -221,6 +247,10 @@
       cfw:fchar-top-right-corner ?┓)
 #+end_src
 
+** pdf-tools
+#+begin_src emacs-lisp
+(use-package pdf-tools)
+#+end_src
 
 * Keybindings
 #+begin_src emacs-lisp
